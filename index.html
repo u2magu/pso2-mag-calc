@@ -1,0 +1,491 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PSO2 マグ育成 計算ツール</title>
+<style>
+  :root{
+    --bg:#f2f5fa; --card:#ffffff; --text:#1b2430; --muted:#66728a;
+    --accent:#2f6fed; --accent-dark:#1f55c0; --line:#e2e8f2;
+    --ok:#0f8a5f; --warn:#c0392b;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--text); line-height:1.65;
+    font-family:"Segoe UI","Hiragino Sans","Yu Gothic UI",Meiryo,sans-serif;
+  }
+  header{padding:30px 18px 8px; text-align:center}
+  h1{margin:0; font-size:1.55rem; letter-spacing:.02em}
+  .sub{margin:6px 0 0; color:var(--muted); font-size:.9rem}
+  main{max-width:940px; margin:0 auto; padding:14px 16px 70px; display:grid; gap:16px}
+  .card{
+    background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:18px 18px 16px; box-shadow:0 2px 8px rgba(20,40,80,.045);
+  }
+  h2{font-size:1.05rem; margin:0 0 14px; padding-bottom:8px; border-bottom:1px solid var(--line)}
+  .levels{display:grid; grid-template-columns:repeat(7,1fr); gap:8px}
+  @media(max-width:680px){.levels{grid-template-columns:repeat(4,1fr)}}
+  .lvl label{display:block; font-size:.72rem; color:var(--muted); margin-bottom:2px; white-space:nowrap}
+  .lvl input{
+    width:100%; padding:7px 8px; border:1px solid var(--line); border-radius:8px;
+    font-size:1rem; text-align:center; background:#fbfcfe;
+  }
+  .lvl input:focus{outline:2px solid rgba(47,111,237,.25); border-color:var(--accent)}
+  .preset{
+    margin-top:12px; display:flex; flex-wrap:wrap; gap:8px; align-items:center;
+    font-size:.88rem; color:var(--muted);
+  }
+  .preset select, .preset input{
+    padding:6px 8px; border:1px solid var(--line); border-radius:8px; background:#fbfcfe; font-size:.9rem;
+  }
+  .preset input{width:74px; text-align:center}
+  button{
+    padding:8px 14px; border:1px solid var(--line); border-radius:9px; background:#fff;
+    color:var(--text); font-size:.9rem; cursor:pointer; transition:.15s;
+  }
+  button:hover{border-color:#c8d3e6; background:#f7f9fd}
+  button.primary{
+    background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600;
+  }
+  button.primary:hover{background:var(--accent-dark); border-color:var(--accent-dark)}
+  .total{margin:12px 0 0; font-size:.95rem; color:var(--muted)}
+  .total strong{color:var(--text); font-size:1.1rem}
+  .over{color:var(--warn)}
+  #totalWarn{display:none; margin-top:4px; color:var(--warn); font-size:.83rem}
+  .field{display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:10px}
+  .field label{font-size:.88rem; color:var(--muted); display:flex; gap:6px; align-items:center}
+  .field select, .field input{
+    padding:8px 10px; border:1px solid var(--line); border-radius:9px; background:#fbfcfe;
+    font-size:.92rem; max-width:100%;
+  }
+  .field input[type=number]{width:90px; text-align:center}
+  .field select{min-width:min(430px,100%)}
+  .hint{font-size:.83rem; color:var(--muted); margin:0 0 12px; min-height:1.4em}
+  .plan-row{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:8px}
+  .plan-row select{flex:1 1 260px; padding:7px 9px; border:1px solid var(--line); border-radius:9px; background:#fbfcfe; font-size:.9rem}
+  .plan-row input{width:88px; padding:7px 9px; border:1px solid var(--line); border-radius:9px; background:#fbfcfe; text-align:center}
+  .plan-row .unit{font-size:.85rem; color:var(--muted)}
+  .plan-row .plan-del{padding:6px 10px; font-size:.82rem}
+  .step-table th:first-child, .step-table td:first-child{width:34px; text-align:center}
+  .step-table .num{width:auto}
+  .step-table td:nth-child(2){max-width:360px}
+  .result{margin-top:14px}
+  .result:empty{display:none}
+  .big{font-size:2.1rem; font-weight:700; color:var(--accent); line-height:1.2}
+  .big span{font-size:1rem; color:var(--muted); font-weight:600}
+  .result p{margin:6px 0}
+  .ok{color:var(--ok); font-weight:600}
+  .warn{color:var(--warn); font-weight:600}
+  .stat-table{width:100%; border-collapse:collapse; margin-top:12px; font-size:.9rem}
+  .stat-table th, .stat-table td{padding:5px 6px; border-bottom:1px solid var(--line)}
+  .stat-table thead th{color:var(--muted); font-weight:600; font-size:.78rem; text-align:left}
+  .stat-table tbody th{font-weight:500; text-align:left; width:26%}
+  .stat-table .num{text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; width:52px}
+  .stat-table .small{font-size:.78rem; color:var(--muted); width:64px}
+  .bar{width:auto; padding-right:10px !important}
+  .bar .track{height:7px; background:#e8eef9; border-radius:5px; overflow:hidden}
+  .bar .track > span{display:block; height:100%; border-radius:5px; background:var(--accent); opacity:.8}
+  details{margin-top:4px}
+  summary{cursor:pointer; color:var(--accent); font-size:.9rem; font-weight:600}
+  .cheat{width:100%; border-collapse:collapse; margin-top:10px; font-size:.83rem}
+  .cheat th, .cheat td{padding:5px 6px; border-bottom:1px solid var(--line); text-align:left}
+  .cheat thead th{color:var(--muted); font-size:.76rem}
+  footer{max-width:940px; margin:0 auto; padding:0 20px 50px; color:var(--muted); font-size:.78rem}
+  footer p{margin:4px 0}
+  code{background:#eef2f9; padding:1px 5px; border-radius:5px; font-size:.85em}
+</style>
+</head>
+<body>
+<header>
+  <h1>PSO2 マグ育成 計算ツール</h1>
+  <p class="sub">「このアイテム何個でLv200？」「何個与えるとどこまで上がる？」を計算します。</p>
+</header>
+
+<main>
+  <!-- 現在のマグ -->
+  <section class="card">
+    <h2>1. 現在のマグ</h2>
+    <div class="levels" id="levelInputs"></div>
+    <div class="preset">
+      <span>極振りプリセット:</span>
+      <select id="presetStat"></select>
+      <input type="number" id="presetLevel" value="139" min="0" max="200">
+      <button id="applyPreset">適用</button>
+      <button id="resetAll">全0</button>
+    </div>
+    <p class="total">合計レベル: <strong id="curTotal">0</strong> / 200</p>
+    <p id="totalWarn">※合計が200を超えています。ゲーム内では200が上限です。</p>
+  </section>
+
+  <!-- 必要数 -->
+  <section class="card">
+    <h2>2. 目標レベルまで何個必要？</h2>
+    <div class="field">
+      <label>アイテム
+        <select id="itemSelect"></select>
+      </label>
+    </div>
+    <p class="hint" id="itemInfo"></p>
+    <div class="field">
+      <label>目標レベル
+        <input type="number" id="targetLevel" value="200" min="0" max="200">
+      </label>
+      <button class="primary" id="calcCount">計算</button>
+    </div>
+    <div class="result" id="countResult"></div>
+  </section>
+
+  <!-- 順算 -->
+  <section class="card">
+    <h2>3. このアイテムを何個与えるとどこまで上がる？</h2>
+    <div class="field">
+      <label>アイテム
+        <select id="itemSelect2"></select>
+      </label>
+    </div>
+    <div class="field">
+      <label>個数
+        <input type="number" id="feedCount" value="10" min="0" max="100000">
+      </label>
+      <button class="primary" id="calcFeed">計算</button>
+    </div>
+    <div class="result" id="feedResult"></div>
+  </section>
+
+  <!-- 育成プラン -->
+  <section class="card">
+    <h2>4. 育成プラン（複数アイテムを順番に）</h2>
+    <p class="hint">上から順に与えたときの結果を計算します。開始地点はセクション1の「現在のマグ」です。</p>
+    <div id="planRows"></div>
+    <div class="field" style="margin-top:10px">
+      <button id="addPlanRow">＋ 行を追加</button>
+      <button class="primary" id="calcPlan">プランを計算</button>
+    </div>
+    <div class="result" id="planResult"></div>
+  </section>
+
+  <!-- 早見表 -->
+  <section class="card">
+    <details>
+      <summary>アイテム効果 早見表を開く</summary>
+      <table class="cheat" id="cheatSheet">
+        <thead><tr><th>アイテム</th><th>上昇 / 下降</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </details>
+  </section>
+</main>
+
+<footer>
+  <p>数値は PSO2（EP6時点）のマグ仕様に基づきます。フードデバイスミニ = 各+60pt、カスタムディスク = 技量+150pt、通常フードデバイス = +720pt など。</p>
+  <p>レベル120～199は 240pt/レベル。Lv200までの累計は 30,100pt。端数や仕様変更で実際と差異が出る場合があります。</p>
+</footer>
+
+<script src="mag-core.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var M = window.MagCalc;
+  var STATS = M.STATS;
+  var ITEMS = M.ITEMS;
+  var $ = function (sel) { return document.querySelector(sel); };
+
+  // ---------- 現在のマグ入力 ----------
+  var levelWrap = $('#levelInputs');
+  STATS.forEach(function (st, i) {
+    var div = document.createElement('div');
+    div.className = 'lvl';
+    var lab = document.createElement('label');
+    lab.textContent = st.name;
+    var inp = document.createElement('input');
+    inp.type = 'number';
+    inp.min = 0;
+    inp.max = 200;
+    inp.value = 0;
+    inp.dataset.i = i;
+    inp.addEventListener('input', updateTotal);
+    div.appendChild(lab);
+    div.appendChild(inp);
+    levelWrap.appendChild(div);
+  });
+
+  var presetStat = $('#presetStat');
+  STATS.forEach(function (st, i) {
+    var o = document.createElement('option');
+    o.value = i;
+    o.textContent = st.name;
+    presetStat.appendChild(o);
+  });
+  presetStat.value = 3; // 技量
+
+  function levelInputs() {
+    return Array.prototype.slice.call(levelWrap.querySelectorAll('input'));
+  }
+  function clampInt(v, min, max) {
+    v = parseInt(v, 10);
+    if (isNaN(v)) v = 0;
+    return Math.max(min, Math.min(max, v));
+  }
+  function getLevels() {
+    return levelInputs().map(function (inp) { return clampInt(inp.value, 0, 200); });
+  }
+  function getState() {
+    return M.createState(getLevels());
+  }
+  function updateTotal() {
+    var t = getLevels().reduce(function (a, b) { return a + b; }, 0);
+    var el = $('#curTotal');
+    el.textContent = t;
+    el.classList.toggle('over', t > 200);
+    $('#totalWarn').style.display = t > 200 ? 'block' : 'none';
+  }
+
+  $('#applyPreset').addEventListener('click', function () {
+    var idx = parseInt(presetStat.value, 10);
+    var lv = clampInt($('#presetLevel').value, 0, 200);
+    levelInputs().forEach(function (inp, i) {
+      inp.value = (i === idx ? lv : 0);
+    });
+    updateTotal();
+  });
+  $('#resetAll').addEventListener('click', function () {
+    levelInputs().forEach(function (inp) { inp.value = 0; });
+    updateTotal();
+  });
+
+  // ---------- アイテム選択 ----------
+  function populateSelect(sel) {
+    var groups = {};
+    ITEMS.forEach(function (item, idx) {
+      var g = groups[item.group];
+      if (!g) {
+        g = document.createElement('optgroup');
+        g.label = item.group;
+        groups[item.group] = g;
+        sel.appendChild(g);
+      }
+      var o = document.createElement('option');
+      o.value = idx;
+      o.textContent = item.name;
+      g.appendChild(o);
+    });
+  }
+
+  function buildSelect(sel) {
+    populateSelect(sel);
+    sel.addEventListener('change', function (e) {
+      $('#itemSelect').value = e.target.value;
+      $('#itemSelect2').value = e.target.value;
+      renderItemInfo();
+    });
+  }
+  buildSelect($('#itemSelect'));
+  buildSelect($('#itemSelect2'));
+
+  function currentItem() {
+    return ITEMS[parseInt($('#itemSelect').value, 10)] || ITEMS[0];
+  }
+
+  function deltaText(item) {
+    var parts = [];
+    item.delta.forEach(function (d, i) {
+      if (d) parts.push(STATS[i].name + (d > 0 ? '+' : '') + d);
+    });
+    return parts.join(' / ') || '効果なし';
+  }
+
+  function renderItemInfo() {
+    var item = currentItem();
+    $('#itemInfo').textContent = '1個の効果: ' + deltaText(item);
+  }
+
+  // ---------- 結果表示 ----------
+  function statTable(state) {
+    var rows = '';
+    STATS.forEach(function (st, i) {
+      var s = state[i];
+      var base = M.cumPoints(s.level);
+      var next = s.level >= 200 ? base : M.cumPoints(s.level + 1);
+      var need = s.level >= 200 ? 0 : Math.max(0, next - s.points);
+      var pct = 100;
+      if (s.level < 200 && next > base) {
+        pct = Math.min(100, Math.max(0, (s.points - base) / (next - base) * 100));
+      }
+      rows +=
+        '<tr>' +
+          '<th>' + st.name + '</th>' +
+          '<td class="num">' + s.level + '</td>' +
+          '<td class="bar"><div class="track"><span style="width:' + pct.toFixed(1) + '%"></span></div></td>' +
+          '<td class="num small">' + (s.level >= 200 ? 'MAX' : need + 'pt') + '</td>' +
+        '</tr>';
+    });
+    return '<table class="stat-table">' +
+      '<thead><tr><th>ステータス</th><th>Lv</th><th></th><th>次まで</th></tr></thead>' +
+      '<tbody>' + rows + '</tbody></table>';
+  }
+
+  function renderCount(count, endState, target, cur) {
+    var box = $('#countResult');
+    if (!isFinite(count)) {
+      box.innerHTML = '<p class="warn">このアイテムだけでは Lv' + target + ' まで到達できません。</p>';
+      return;
+    }
+    var lv = M.totalLevel(endState);
+    var html = '';
+    if (count === 0) {
+      html += '<div class="big">0 <span>個</span></div>';
+      html += '<p>すでに Lv' + cur + '（目標 Lv' + target + '）です。</p>';
+    } else {
+      html += '<div class="big">' + count.toLocaleString('ja-JP') + ' <span>個</span></div>';
+      html += '<p>現在 Lv' + cur + ' → <strong>Lv' + lv + '</strong>（目標 Lv' + target + '）</p>';
+    }
+    html += statTable(endState);
+    box.innerHTML = html;
+  }
+
+  function calcCount() {
+    var item = currentItem();
+    var target = clampInt($('#targetLevel').value, 0, 200);
+    var state = getState();
+    var cur = M.totalLevel(state);
+    var res = M.simulateToLevel(state, item, target);
+    renderCount(res.count, res.state, target, cur);
+  }
+
+  function calcFeed() {
+    var item = ITEMS[parseInt($('#itemSelect2').value, 10)] || ITEMS[0];
+    var n = clampInt($('#feedCount').value, 0, 100000);
+    var state = getState();
+    var before = M.totalLevel(state);
+    var st = M.cloneState(state);
+    var fed = M.feed(st, item, n);
+    var lv = M.totalLevel(st);
+
+    var html = '<div class="big">Lv' + lv + '</div>';
+    html += '<p>' + fed.toLocaleString('ja-JP') + '個与えた結果（+' + (lv - before) + 'レベル）</p>';
+
+    if (lv >= 200) {
+      html += '<p class="ok">Lv200（カンスト）</p>';
+    } else {
+      var res = M.simulateToLevel(st, item, 200);
+      if (isFinite(res.count)) {
+        html += '<p class="ok">このまま Lv200 まで: あと <strong>' +
+          res.count.toLocaleString('ja-JP') + '個</strong></p>';
+      } else {
+        html += '<p class="warn">このアイテムだけでは Lv200 に到達できません。</p>';
+      }
+    }
+    html += statTable(st);
+    $('#feedResult').innerHTML = html;
+  }
+
+  $('#calcCount').addEventListener('click', calcCount);
+  $('#calcFeed').addEventListener('click', calcFeed);
+
+  // ---------- 育成プラン ----------
+  var planRows = $('#planRows');
+
+  function addPlanRow() {
+    var row = document.createElement('div');
+    row.className = 'plan-row';
+
+    var sel = document.createElement('select');
+    populateSelect(sel);
+
+    var inp = document.createElement('input');
+    inp.type = 'number';
+    inp.min = 0;
+    inp.max = 100000;
+    inp.value = 10;
+    inp.className = 'plan-count';
+
+    var unit = document.createElement('span');
+    unit.className = 'unit';
+    unit.textContent = '個';
+
+    var del = document.createElement('button');
+    del.className = 'plan-del';
+    del.textContent = '削除';
+    del.addEventListener('click', function () { row.remove(); });
+
+    row.appendChild(sel);
+    row.appendChild(inp);
+    row.appendChild(unit);
+    row.appendChild(del);
+    planRows.appendChild(row);
+  }
+
+  function calcPlan() {
+    var rows = Array.prototype.slice.call(planRows.querySelectorAll('.plan-row'));
+    var box = $('#planResult');
+    if (rows.length === 0) {
+      box.innerHTML = '<p class="warn">アイテムの行がありません。</p>';
+      return;
+    }
+
+    var steps = rows.map(function (row) {
+      var item = ITEMS[parseInt(row.querySelector('select').value, 10)] || ITEMS[0];
+      var n = clampInt(row.querySelector('.plan-count').value, 0, 100000);
+      return { item: item, n: n };
+    });
+
+    var st = getState();
+    var before = M.totalLevel(st);
+    var trs = '';
+    steps.forEach(function (s, idx) {
+      M.feed(st, s.item, s.n);
+      trs += '<tr>' +
+        '<td class="num">' + (idx + 1) + '</td>' +
+        '<td>' + s.item.name + '</td>' +
+        '<td class="num">' + s.n.toLocaleString('ja-JP') + '</td>' +
+        '<td class="num">Lv' + M.totalLevel(st) + '</td>' +
+      '</tr>';
+    });
+
+    var lv = M.totalLevel(st);
+    var html = '<div class="big">Lv' + lv + '</div>';
+    html += '<p>開始 Lv' + before + ' → <strong>Lv' + lv + '</strong></p>';
+
+    if (lv >= 200) {
+      html += '<p class="ok">Lv200（カンスト）</p>';
+    } else {
+      var last = steps[steps.length - 1].item;
+      var res = M.simulateToLevel(st, last, 200);
+      if (isFinite(res.count)) {
+        html += '<p class="ok">最後のアイテム（' + last.name + '）なら Lv200 まで あと <strong>' +
+          res.count.toLocaleString('ja-JP') + '個</strong></p>';
+      }
+    }
+
+    html += '<table class="stat-table step-table"><thead><tr><th>#</th><th>アイテム</th><th>個数</th><th>結果</th></tr></thead><tbody>' +
+      trs + '</tbody></table>';
+    html += statTable(st);
+    box.innerHTML = html;
+  }
+
+  $('#addPlanRow').addEventListener('click', addPlanRow);
+  $('#calcPlan').addEventListener('click', calcPlan);
+
+  // ---------- 早見表 ----------
+  var cheatBody = $('#cheatSheet tbody');
+  ITEMS.forEach(function (item) {
+    var tr = document.createElement('tr');
+    var td1 = document.createElement('td');
+    td1.textContent = item.name;
+    var td2 = document.createElement('td');
+    td2.textContent = deltaText(item);
+    tr.appendChild(td1);
+    tr.appendChild(td2);
+    cheatBody.appendChild(tr);
+  });
+
+  // 初期表示
+  addPlanRow();
+  updateTotal();
+  renderItemInfo();
+})();
+</script>
+</body>
+</html>
