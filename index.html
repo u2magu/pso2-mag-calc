@@ -4,11 +4,42 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>PSO2 マグ育成 計算ツール</title>
+<script>
+  try {
+    var savedTheme = localStorage.getItem('pso2-mag-theme');
+    if (savedTheme) document.documentElement.dataset.theme = savedTheme;
+  } catch (e) {}
+</script>
 <style>
   :root{
     --bg:#f2f5fa; --card:#ffffff; --text:#1b2430; --muted:#66728a;
-    --accent:#2f6fed; --accent-dark:#1f55c0; --line:#e2e8f2;
-    --ok:#0f8a5f; --warn:#c0392b;
+    --accent:#2f6fed; --accent-dark:#1f55c0; --accent-weak:rgba(47,111,237,.20);
+    --line:#e2e8f2; --field:#fbfcfe; --track:#e8eef9; --code:#eef2f9;
+    --ok:#0f8a5f; --warn:#c0392b; --on-accent:#ffffff;
+    --shadow:0 2px 8px rgba(20,40,80,.045);
+  }
+  [data-theme="green"]{
+    --bg:#f1f7f4; --accent:#0f9d76; --accent-dark:#0b7a5b;
+    --accent-weak:rgba(15,157,118,.20); --line:#dcebe3; --field:#fbfefc; --track:#e3f1ea;
+  }
+  [data-theme="orange"]{
+    --bg:#fbf5ef; --accent:#e8792b; --accent-dark:#c05e17;
+    --accent-weak:rgba(232,121,43,.20); --line:#f0e3d7; --field:#fffcf9; --track:#f6e9dd;
+  }
+  [data-theme="pink"]{
+    --bg:#fbf2f7; --accent:#e0559b; --accent-dark:#c03c80;
+    --accent-weak:rgba(224,85,155,.20); --line:#f0dfe9; --field:#fffbfd; --track:#f7e6ef;
+  }
+  [data-theme="purple"]{
+    --bg:#f5f3fd; --accent:#7a5af8; --accent-dark:#5f3fe0;
+    --accent-weak:rgba(122,90,248,.20); --line:#e7e2f8; --field:#fdfcff; --track:#ede8fb;
+  }
+  [data-theme="dark"]{
+    --bg:#12161f; --card:#1b2230; --text:#e8edf7; --muted:#9aa7bd;
+    --accent:#6ea0ff; --accent-dark:#4d82e8; --accent-weak:rgba(110,160,255,.28);
+    --line:#2c3547; --field:#151b26; --track:#2a3446; --code:#222b3b;
+    --ok:#4fd1a5; --warn:#ff7b72; --on-accent:#0b1020;
+    --shadow:0 2px 10px rgba(0,0,0,.35);
   }
   *{box-sizing:border-box}
   body{
@@ -18,10 +49,25 @@
   header{padding:30px 18px 8px; text-align:center}
   h1{margin:0; font-size:1.55rem; letter-spacing:.02em}
   .sub{margin:6px 0 0; color:var(--muted); font-size:.9rem}
+  .theme-bar{display:flex; justify-content:center; align-items:center; gap:9px; margin-top:16px; flex-wrap:wrap}
+  .theme-label{font-size:.78rem; color:var(--muted); margin-right:2px}
+  .swatch{
+    width:22px; height:22px; padding:0; border-radius:50%;
+    border:2px solid var(--card); box-shadow:0 0 0 1px var(--muted);
+    cursor:pointer; transition:transform .12s, box-shadow .12s;
+  }
+  .swatch:hover{transform:scale(1.12)}
+  .swatch.active{box-shadow:0 0 0 2px var(--accent)}
+  .swatch[data-theme="blue"]{background:#2f6fed}
+  .swatch[data-theme="green"]{background:#0f9d76}
+  .swatch[data-theme="orange"]{background:#e8792b}
+  .swatch[data-theme="pink"]{background:#e0559b}
+  .swatch[data-theme="purple"]{background:#7a5af8}
+  .swatch[data-theme="dark"]{background:#1b2230; border-color:#8b97ad}
   main{max-width:940px; margin:0 auto; padding:14px 16px 70px; display:grid; gap:16px}
   .card{
     background:var(--card); border:1px solid var(--line); border-radius:14px;
-    padding:18px 18px 16px; box-shadow:0 2px 8px rgba(20,40,80,.045);
+    padding:18px 18px 16px; box-shadow:var(--shadow);
   }
   h2{font-size:1.05rem; margin:0 0 14px; padding-bottom:8px; border-bottom:1px solid var(--line)}
   .levels{display:grid; grid-template-columns:repeat(7,1fr); gap:8px}
@@ -29,24 +75,26 @@
   .lvl label{display:block; font-size:.72rem; color:var(--muted); margin-bottom:2px; white-space:nowrap}
   .lvl input{
     width:100%; padding:7px 8px; border:1px solid var(--line); border-radius:8px;
-    font-size:1rem; text-align:center; background:#fbfcfe;
+    font-size:1rem; text-align:center; background:var(--field);
   }
-  .lvl input:focus{outline:2px solid rgba(47,111,237,.25); border-color:var(--accent)}
+  .lvl input:focus{
+    outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-weak);
+  }
   .preset{
     margin-top:12px; display:flex; flex-wrap:wrap; gap:8px; align-items:center;
     font-size:.88rem; color:var(--muted);
   }
   .preset select, .preset input{
-    padding:6px 8px; border:1px solid var(--line); border-radius:8px; background:#fbfcfe; font-size:.9rem;
+    padding:6px 8px; border:1px solid var(--line); border-radius:8px; background:var(--field); font-size:.9rem;
   }
   .preset input{width:74px; text-align:center}
   button{
-    padding:8px 14px; border:1px solid var(--line); border-radius:9px; background:#fff;
+    padding:8px 14px; border:1px solid var(--line); border-radius:9px; background:var(--card);
     color:var(--text); font-size:.9rem; cursor:pointer; transition:.15s;
   }
-  button:hover{border-color:#c8d3e6; background:#f7f9fd}
+  button:hover{border-color:var(--muted); background:var(--field)}
   button.primary{
-    background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600;
+    background:var(--accent); border-color:var(--accent); color:var(--on-accent); font-weight:600;
   }
   button.primary:hover{background:var(--accent-dark); border-color:var(--accent-dark)}
   .total{margin:12px 0 0; font-size:.95rem; color:var(--muted)}
@@ -56,15 +104,20 @@
   .field{display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:10px}
   .field label{font-size:.88rem; color:var(--muted); display:flex; gap:6px; align-items:center}
   .field select, .field input{
-    padding:8px 10px; border:1px solid var(--line); border-radius:9px; background:#fbfcfe;
+    padding:8px 10px; border:1px solid var(--line); border-radius:9px; background:var(--field);
     font-size:.92rem; max-width:100%;
   }
   .field input[type=number]{width:90px; text-align:center}
   .field select{min-width:min(430px,100%)}
+  .field select:focus, .field input:focus,
+  .preset select:focus, .preset input:focus,
+  .plan-row select:focus, .plan-row input:focus{
+    outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-weak);
+  }
   .hint{font-size:.83rem; color:var(--muted); margin:0 0 12px; min-height:1.4em}
   .plan-row{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:8px}
-  .plan-row select{flex:1 1 260px; padding:7px 9px; border:1px solid var(--line); border-radius:9px; background:#fbfcfe; font-size:.9rem}
-  .plan-row input{width:88px; padding:7px 9px; border:1px solid var(--line); border-radius:9px; background:#fbfcfe; text-align:center}
+  .plan-row select{flex:1 1 260px; padding:7px 9px; border:1px solid var(--line); border-radius:9px; background:var(--field); font-size:.9rem}
+  .plan-row input{width:88px; padding:7px 9px; border:1px solid var(--line); border-radius:9px; background:var(--field); text-align:center}
   .plan-row .unit{font-size:.85rem; color:var(--muted)}
   .plan-row .plan-del{padding:6px 10px; font-size:.82rem}
   .step-table th:first-child, .step-table td:first-child{width:34px; text-align:center}
@@ -84,7 +137,7 @@
   .stat-table .num{text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; width:52px}
   .stat-table .small{font-size:.78rem; color:var(--muted); width:64px}
   .bar{width:auto; padding-right:10px !important}
-  .bar .track{height:7px; background:#e8eef9; border-radius:5px; overflow:hidden}
+  .bar .track{height:7px; background:var(--track); border-radius:5px; overflow:hidden}
   .bar .track > span{display:block; height:100%; border-radius:5px; background:var(--accent); opacity:.8}
   details{margin-top:4px}
   summary{cursor:pointer; color:var(--accent); font-size:.9rem; font-weight:600}
@@ -93,13 +146,23 @@
   .cheat thead th{color:var(--muted); font-size:.76rem}
   footer{max-width:940px; margin:0 auto; padding:0 20px 50px; color:var(--muted); font-size:.78rem}
   footer p{margin:4px 0}
-  code{background:#eef2f9; padding:1px 5px; border-radius:5px; font-size:.85em}
+  footer .disclaimer{margin-top:12px; padding-top:10px; border-top:1px solid var(--line); font-size:.75rem}
+  code{background:var(--code); padding:1px 5px; border-radius:5px; font-size:.85em}
 </style>
 </head>
 <body>
 <header>
   <h1>PSO2 マグ育成 計算ツール</h1>
   <p class="sub">「このアイテム何個でLv200？」「何個与えるとどこまで上がる？」を計算します。</p>
+  <div class="theme-bar" role="group" aria-label="テーマカラー">
+    <span class="theme-label">テーマ</span>
+    <button class="swatch" data-theme="blue" title="ブルー" aria-label="ブルー"></button>
+    <button class="swatch" data-theme="green" title="グリーン" aria-label="グリーン"></button>
+    <button class="swatch" data-theme="orange" title="オレンジ" aria-label="オレンジ"></button>
+    <button class="swatch" data-theme="pink" title="ピンク" aria-label="ピンク"></button>
+    <button class="swatch" data-theme="purple" title="パープル" aria-label="パープル"></button>
+    <button class="swatch" data-theme="dark" title="ダーク" aria-label="ダーク"></button>
+  </div>
 </header>
 
 <main>
@@ -180,6 +243,7 @@
 <footer>
   <p>数値は PSO2（EP6時点）のマグ仕様に基づきます。フードデバイスミニ = 各+60pt、カスタムディスク = 技量+150pt、通常フードデバイス = +720pt など。</p>
   <p>レベル120～199は 240pt/レベル。Lv200までの累計は 30,100pt。端数や仕様変更で実際と差異が出る場合があります。</p>
+  <p class="disclaimer">非公式のファンメイドツールです。『PHANTASY STAR ONLINE 2』は株式会社セガの商標です。計算値は参考値としてご利用ください。</p>
 </footer>
 
 <script src="mag-core.js"></script>
@@ -480,6 +544,34 @@
     tr.appendChild(td2);
     cheatBody.appendChild(tr);
   });
+
+  // ---------- テーマカラー ----------
+  var THEME_KEY = 'pso2-mag-theme';
+  var THEMES = ['blue', 'green', 'orange', 'pink', 'purple', 'dark'];
+  var swatches = Array.prototype.slice.call(document.querySelectorAll('.swatch'));
+
+  function applyTheme(name) {
+    var theme = THEMES.indexOf(name) >= 0 ? name : 'blue';
+    if (theme === 'blue') {
+      document.documentElement.removeAttribute('data-theme');
+    } else {
+      document.documentElement.dataset.theme = theme;
+    }
+    swatches.forEach(function (btn) {
+      var on = btn.dataset.theme === theme;
+      btn.classList.toggle('active', on);
+      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+    try { localStorage.setItem(THEME_KEY, theme); } catch (e) {}
+  }
+
+  swatches.forEach(function (btn) {
+    btn.addEventListener('click', function () { applyTheme(btn.dataset.theme); });
+  });
+
+  var initialTheme = 'blue';
+  try { initialTheme = localStorage.getItem(THEME_KEY) || 'blue'; } catch (e) {}
+  applyTheme(initialTheme);
 
   // 初期表示
   addPlanRow();

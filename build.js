@@ -17,4 +17,5 @@ if (!html.includes(tag)) {
 
 html = html.replace(tag, '<script>\n' + core + '\n</script>');
 fs.writeFileSync(path.join(dir, 'pso2-mag-calc-standalone.html'), html, 'utf8');
-console.log('built: pso2-mag-calc-standalone.html');
+fs.writeFileSync(path.join(dir, 'mag-calc.html'), html, 'utf8');
+console.log('built: pso2-mag-calc-standalone.html, mag-calc.html');
