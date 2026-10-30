@@ -18,6 +18,13 @@
     --ok:#0f8a5f; --warn:#c0392b; --on-accent:#ffffff;
     --shadow:0 2px 8px rgba(20,40,80,.045);
   }
+  [data-theme="white"]{
+    --bg:#ffffff; --card:#ffffff; --text:#1b2430; --muted:#6b7688;
+    --accent:#4a5568; --accent-dark:#2d3748; --accent-weak:rgba(74,85,104,.18);
+    --line:#e6e9ef; --field:#fafbfc; --track:#eef1f5; --code:#f4f6f9;
+    --on-accent:#ffffff;
+    --shadow:0 1px 4px rgba(20,40,80,.05);
+  }
   [data-theme="green"]{
     --bg:#f1f7f4; --accent:#0f9d76; --accent-dark:#0b7a5b;
     --accent-weak:rgba(15,157,118,.20); --line:#dcebe3; --field:#fbfefc; --track:#e3f1ea;
@@ -46,24 +53,21 @@
     margin:0; background:var(--bg); color:var(--text); line-height:1.65;
     font-family:"Segoe UI","Hiragino Sans","Yu Gothic UI",Meiryo,sans-serif;
   }
-  header{padding:30px 18px 8px; text-align:center}
+  header{padding:14px 18px 8px; text-align:center}
+  .theme-picker{
+    display:flex; justify-content:flex-end; align-items:center; gap:6px;
+    margin-bottom:2px;
+  }
+  .theme-picker label{font-size:.72rem; color:var(--muted)}
+  .theme-picker select{
+    padding:3px 6px; border:1px solid var(--line); border-radius:7px;
+    background:var(--field); color:var(--text); font-size:.75rem; cursor:pointer;
+  }
+  .theme-picker select:focus{
+    outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-weak);
+  }
   h1{margin:0; font-size:1.55rem; letter-spacing:.02em}
   .sub{margin:6px 0 0; color:var(--muted); font-size:.9rem}
-  .theme-bar{display:flex; justify-content:center; align-items:center; gap:9px; margin-top:16px; flex-wrap:wrap}
-  .theme-label{font-size:.78rem; color:var(--muted); margin-right:2px}
-  .swatch{
-    width:22px; height:22px; padding:0; border-radius:50%;
-    border:2px solid var(--card); box-shadow:0 0 0 1px var(--muted);
-    cursor:pointer; transition:transform .12s, box-shadow .12s;
-  }
-  .swatch:hover{transform:scale(1.12)}
-  .swatch.active{box-shadow:0 0 0 2px var(--accent)}
-  .swatch[data-theme="blue"]{background:#2f6fed}
-  .swatch[data-theme="green"]{background:#0f9d76}
-  .swatch[data-theme="orange"]{background:#e8792b}
-  .swatch[data-theme="pink"]{background:#e0559b}
-  .swatch[data-theme="purple"]{background:#7a5af8}
-  .swatch[data-theme="dark"]{background:#1b2230; border-color:#8b97ad}
   main{max-width:940px; margin:0 auto; padding:14px 16px 70px; display:grid; gap:16px}
   .card{
     background:var(--card); border:1px solid var(--line); border-radius:14px;
@@ -152,17 +156,20 @@
 </head>
 <body>
 <header>
+  <div class="theme-picker">
+    <label for="themeSelect">テーマ</label>
+    <select id="themeSelect" aria-label="テーマカラー">
+      <option value="blue">ブルー</option>
+      <option value="white">ホワイト</option>
+      <option value="green">グリーン</option>
+      <option value="orange">オレンジ</option>
+      <option value="pink">ピンク</option>
+      <option value="purple">パープル</option>
+      <option value="dark">ダーク</option>
+    </select>
+  </div>
   <h1>PSO2 マグ育成 計算ツール</h1>
   <p class="sub">「このアイテム何個でLv200？」「何個与えるとどこまで上がる？」を計算します。</p>
-  <div class="theme-bar" role="group" aria-label="テーマカラー">
-    <span class="theme-label">テーマ</span>
-    <button class="swatch" data-theme="blue" title="ブルー" aria-label="ブルー"></button>
-    <button class="swatch" data-theme="green" title="グリーン" aria-label="グリーン"></button>
-    <button class="swatch" data-theme="orange" title="オレンジ" aria-label="オレンジ"></button>
-    <button class="swatch" data-theme="pink" title="ピンク" aria-label="ピンク"></button>
-    <button class="swatch" data-theme="purple" title="パープル" aria-label="パープル"></button>
-    <button class="swatch" data-theme="dark" title="ダーク" aria-label="ダーク"></button>
-  </div>
 </header>
 
 <main>
@@ -547,8 +554,8 @@
 
   // ---------- テーマカラー ----------
   var THEME_KEY = 'pso2-mag-theme';
-  var THEMES = ['blue', 'green', 'orange', 'pink', 'purple', 'dark'];
-  var swatches = Array.prototype.slice.call(document.querySelectorAll('.swatch'));
+  var THEMES = ['blue', 'white', 'green', 'orange', 'pink', 'purple', 'dark'];
+  var themeSelect = $('#themeSelect');
 
   function applyTheme(name) {
     var theme = THEMES.indexOf(name) >= 0 ? name : 'blue';
@@ -557,16 +564,12 @@
     } else {
       document.documentElement.dataset.theme = theme;
     }
-    swatches.forEach(function (btn) {
-      var on = btn.dataset.theme === theme;
-      btn.classList.toggle('active', on);
-      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
-    });
+    themeSelect.value = theme;
     try { localStorage.setItem(THEME_KEY, theme); } catch (e) {}
   }
 
-  swatches.forEach(function (btn) {
-    btn.addEventListener('click', function () { applyTheme(btn.dataset.theme); });
+  themeSelect.addEventListener('change', function () {
+    applyTheme(themeSelect.value);
   });
 
   var initialTheme = 'blue';
